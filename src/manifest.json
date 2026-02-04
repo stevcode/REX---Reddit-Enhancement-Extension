@@ -1,0 +1,28 @@
+{
+    "manifest_version": 3,
+    "name": "REX - Reddit Enhancement Extension",
+    "version": "1.0.0",
+    "description": "Enhance your Reddit experience.",
+    "permissions": [],
+    "host_permissions": [
+        "https://www.reddit.com/*",
+        "https://sh.reddit.com/*"
+    ],
+    "content_scripts": [
+        {
+            "matches": [
+                "https://www.reddit.com/*",
+                "https://sh.reddit.com/*"
+            ],
+            "exclude_matches": [
+                "https://old.reddit.com/*"
+            ],
+            "js": [
+                "rexsettings.js",
+                "sidebar.js",
+                "content.js"
+            ],
+            "run_at": "document_start"
+        }
+    ]
+}
