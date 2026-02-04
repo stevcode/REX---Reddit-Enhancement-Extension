@@ -9,6 +9,173 @@ window.REX_HEADER = (function () {
     // Selectors identified via inspection
     const AD_SELECTORS = '#advertise-button';
     const CREATE_SELECTOR = '#create-post';
+    const REDDIT_LOGO_SELECTOR = '#reddit-logo';
+    const SUBREDDIT_INDICATOR_ID = 'rex-subreddit-indicator';
+
+    /**
+     * Extracts subreddit name from the current URL
+     * Works for both subreddit pages (/r/name/) and post pages (/r/name/comments/...)
+     * @returns {string|null} The subreddit name (e.g., "meat") or null if not on a subreddit
+     */
+    function getSubredditFromUrl() {
+        const match = window.location.pathname.match(/^\/r\/([^\/]+)/);
+        return match ? match[1] : null;
+    }
+
+    /**
+     * Finds the subreddit logo URL from the page
+     * Searches for community icon images in the DOM
+     * @returns {string|null} The logo URL or null if not found
+     */
+    function findSubredditLogo() {
+        // Method 1: Look for shreddit-subreddit-icon element
+        const subIconElement = document.querySelector('shreddit-subreddit-icon');
+        if (subIconElement) {
+            // Check shadow root first
+            if (subIconElement.shadowRoot) {
+                const img = subIconElement.shadowRoot.querySelector('img');
+                if (img && img.src) return img.src;
+            }
+            // Check for img child in light DOM
+            const img = subIconElement.querySelector('img');
+            if (img && img.src) return img.src;
+            // Check for src attribute on the element itself
+            const srcAttr = subIconElement.getAttribute('src');
+            if (srcAttr) return srcAttr;
+        }
+
+        // Method 2: Search for images with communityIcon in URL
+        const allImgs = Array.from(document.querySelectorAll('img'));
+        const iconImg = allImgs.find(img => img.src && img.src.includes('communityIcon'));
+        if (iconImg) return iconImg.src;
+
+        // Method 3: Look for images with matching alt text pattern
+        const subredditName = getSubredditFromUrl();
+        if (subredditName) {
+            const altImg = allImgs.find(img =>
+                img.alt && img.alt.toLowerCase().includes(`r/${subredditName.toLowerCase()} icon`)
+            );
+            if (altImg) return altImg.src;
+        }
+
+        return null;
+    }
+
+    /**
+     * Creates or updates the subreddit indicator in the header
+     */
+    function updateSubredditIndicator() {
+        const subredditName = getSubredditFromUrl();
+        const redditLogo = document.querySelector(REDDIT_LOGO_SELECTOR);
+
+        // Remove existing indicator if present
+        const existingIndicator = document.getElementById(SUBREDDIT_INDICATOR_ID);
+        if (existingIndicator) {
+            existingIndicator.remove();
+        }
+
+        // If not on a subreddit page or logo not found, nothing to do
+        if (!subredditName || !redditLogo) {
+            return;
+        }
+
+        // Find subreddit logo
+        const logoUrl = findSubredditLogo();
+
+        // Create the indicator container
+        const indicator = document.createElement('a');
+        indicator.id = SUBREDDIT_INDICATOR_ID;
+        indicator.href = `/r/${subredditName}/`;
+        indicator.style.cssText = `
+            display: flex;
+            align-items: center;
+            text-decoration: none;
+            margin-left: 8px;
+            gap: 6px;
+        `;
+
+        // Create the logo image if available
+        if (logoUrl) {
+            const logoImg = document.createElement('img');
+            logoImg.src = logoUrl;
+            logoImg.alt = `r/${subredditName} icon`;
+            logoImg.style.cssText = `
+                width: 24px;
+                height: 24px;
+                border-radius: 50%;
+                object-fit: cover;
+            `;
+            indicator.appendChild(logoImg);
+        }
+
+        // Create the subreddit name text
+        const nameSpan = document.createElement('span');
+        nameSpan.textContent = `/r/${subredditName}`;
+        nameSpan.style.cssText = `
+            color: var(--color-neutral-content-strong, #1A1A1B);
+            font-size: 14px;
+            font-weight: 500;
+        `;
+        indicator.appendChild(nameSpan);
+
+        // Insert after the reddit logo's parent container (tooltip wrapper)
+        // to avoid being inside the hover activation area
+        const logoContainer = redditLogo.closest('rpl-tooltip') || redditLogo.parentNode;
+        logoContainer.parentNode.insertBefore(indicator, logoContainer.nextSibling);
+        console.log(`[REX] Header: Subreddit indicator added for r/${subredditName}`);
+    }
+
+    /**
+     * Initializes subreddit indicator with retry logic for dynamic content
+     */
+    function initSubredditIndicator() {
+        // Initial attempt
+        updateSubredditIndicator();
+
+        // Retry a few times as page may still be loading
+        setTimeout(updateSubredditIndicator, 500);
+        setTimeout(updateSubredditIndicator, 1500);
+        setTimeout(updateSubredditIndicator, 3000);
+
+        // Watch for URL changes (SPA navigation) and DOM rebuilds (page refresh)
+        let lastUrl = window.location.href;
+        const domObserver = new MutationObserver(() => {
+            const subredditName = getSubredditFromUrl();
+            const existingIndicator = document.getElementById(SUBREDDIT_INDICATOR_ID);
+            const redditLogo = document.querySelector(REDDIT_LOGO_SELECTOR);
+
+            // Re-add indicator if we're on a subreddit, logo exists, but indicator is missing
+            if (subredditName && redditLogo && !existingIndicator) {
+                updateSubredditIndicator();
+            }
+
+            // Handle URL changes (SPA navigation)
+            if (window.location.href !== lastUrl) {
+                lastUrl = window.location.href;
+                // Delay to allow new page content to load
+                setTimeout(updateSubredditIndicator, 300);
+                setTimeout(updateSubredditIndicator, 1000);
+            }
+        });
+
+        // Observe body when available
+        const startObserving = () => {
+            if (document.body) {
+                domObserver.observe(document.body, { childList: true, subtree: true });
+            }
+        };
+
+        if (document.body) {
+            startObserving();
+        } else {
+            document.addEventListener('DOMContentLoaded', startObserving);
+        }
+
+        // Also listen for popstate events (browser back/forward)
+        window.addEventListener('popstate', () => {
+            setTimeout(updateSubredditIndicator, 300);
+        });
+    }
 
     /**
      * Toggles visibility for a specific feature using a style tag
@@ -138,6 +305,9 @@ window.REX_HEADER = (function () {
 
     function init() {
         console.log('[REX] Header: Initializing');
+
+        // Initialize subreddit indicator feature
+        initSubredditIndicator();
 
         if (typeof chrome !== 'undefined' && chrome.storage && chrome.storage.sync) {
             chrome.storage.sync.get(['rex_hide_ads', 'rex_hide_create', 'rex_hide_ask'], (items) => {
