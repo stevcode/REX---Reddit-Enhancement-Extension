@@ -3,7 +3,9 @@
     "name": "REX - Reddit Enhancement Extension",
     "version": "1.0.0",
     "description": "Enhance your Reddit experience.",
-    "permissions": [],
+    "permissions": [
+        "storage"
+    ],
     "host_permissions": [
         "https://www.reddit.com/*",
         "https://sh.reddit.com/*"
@@ -20,6 +22,7 @@
             "js": [
                 "rexsettings.js",
                 "sidebar.js",
+                "redditheader.js",
                 "content.js"
             ],
             "run_at": "document_start"

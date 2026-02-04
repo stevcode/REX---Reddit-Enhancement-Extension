@@ -11,6 +11,11 @@
         window.REX_SIDEBAR.init();
     }
 
+    // Initialize Header Logic (Ads etc)
+    if (window.REX_HEADER) {
+        window.REX_HEADER.init();
+    }
+
     // Initialize REX Settings if we are on the settings page
     function initSettings() {
         if (window.location.href.includes('/settings') && window.REX_SETTINGS) {
@@ -19,10 +24,11 @@
     }
 
     if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', initSettings);
+        document.addEventListener('DOMContentLoaded', () => {
+            initSettings();
+        });
     } else {
         initSettings();
     }
 
 })();
-
