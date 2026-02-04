@@ -134,6 +134,7 @@ window.REX_HEADER = (function () {
 
     const adState = { tag: null };
     const createState = { tag: null };
+    let askHideEnabled = false; // Track the setting
 
     function init() {
         console.log('[REX] Header: Initializing');
@@ -142,7 +143,9 @@ window.REX_HEADER = (function () {
             chrome.storage.sync.get(['rex_hide_ads', 'rex_hide_create', 'rex_hide_ask'], (items) => {
                 toggleVisibility(!!items.rex_hide_ads, AD_SELECTORS, 'rex-hide-ads-style', adState, 'Ads');
                 toggleVisibility(!!items.rex_hide_create, CREATE_SELECTOR, 'rex-hide-create-style', createState, 'Create');
-                toggleAskVisibility(!!items.rex_hide_ask);
+
+                askHideEnabled = !!items.rex_hide_ask;
+                toggleAskVisibility(askHideEnabled);
             });
 
             chrome.storage.onChanged.addListener((changes, area) => {
@@ -154,10 +157,24 @@ window.REX_HEADER = (function () {
                         toggleVisibility(changes.rex_hide_create.newValue, CREATE_SELECTOR, 'rex-hide-create-style', createState, 'Create');
                     }
                     if (changes.rex_hide_ask) {
-                        toggleAskVisibility(changes.rex_hide_ask.newValue);
+                        askHideEnabled = changes.rex_hide_ask.newValue;
+                        toggleAskVisibility(askHideEnabled);
                     }
                 }
             });
+
+            // Use MutationObserver to re-apply Ask setting when DOM changes
+            // This handles dynamic page loading where shadow DOMs appear later
+            const observer = new MutationObserver(() => {
+                if (askHideEnabled) {
+                    toggleAskVisibility(true);
+                }
+            });
+
+            const observeTarget = document.body || document.documentElement;
+            if (observeTarget) {
+                observer.observe(observeTarget, { childList: true, subtree: true });
+            }
         }
     }
 
