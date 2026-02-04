@@ -44,7 +44,7 @@ window.REX_HEADER = (function () {
     function toggleAskVisibility(shouldHide) {
         const STYLE_ID = 'rex-hide-ask-shadow-style';
         const CSS_CONTENT = `
-            a[href="/answers/"] { display: none !important; }
+            a[href^="/answers/"] { display: none !important; }
             hr.trailing-divider { display: none !important; }
         `;
 
