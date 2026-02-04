@@ -12,6 +12,7 @@ window.REX_SETTINGS = (function () {
     // Default settings
     let currentSettings = {
         rex_hide_ads: false,
+        rex_hide_create: false,
         rex_sidebar_mode: 'Show', // Default for now
         rex_sidebar_collapse: false
     };
@@ -131,6 +132,7 @@ window.REX_SETTINGS = (function () {
                 <div class="mb-lg">
                     <h2 class="${SECTION_HEADER_CLASS}">Reddit Header</h2>
                     ${createToggleRow("Hide 'Advertise on Reddit' Button", "Removes the megaphone icon from the header", "rex-toggle-ads", "rex_hide_ads")}
+                    ${createToggleRow("Remove 'Create' Button", "Hides the Create Post (+) button from the header", "rex-toggle-create", "rex_hide_create")}
                 </div>
 
                 <!-- SIDEBAR Section -->
