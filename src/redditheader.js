@@ -88,7 +88,10 @@ window.REX_HEADER = (function () {
         indicator.href = `/r/${subredditName}/`;
         indicator.style.cssText = `
             display: flex;
-            align-items: center;
+            align-items: flex-end;
+            height: 40px;
+            padding-bottom: 9px;
+            box-sizing: border-box;
             text-decoration: none;
             margin-left: 8px;
             gap: 6px;
@@ -104,6 +107,7 @@ window.REX_HEADER = (function () {
                 height: 24px;
                 border-radius: 50%;
                 object-fit: cover;
+                margin-bottom: 0;
             `;
             indicator.appendChild(logoImg);
         }
@@ -115,6 +119,7 @@ window.REX_HEADER = (function () {
             color: var(--color-neutral-content-strong, #1A1A1B);
             font-size: 14px;
             font-weight: 500;
+            line-height: normal;
         `;
         indicator.appendChild(nameSpan);
 
