@@ -225,10 +225,21 @@ window.REX_HEADER = (function () {
      * Searches through all shadow roots to find the button
      */
     function toggleAskVisibility(shouldHide) {
+        const isSubreddit = !!getSubredditFromUrl();
+        const shouldCenter = shouldHide && !isSubreddit;
+
         const STYLE_ID = 'rex-hide-ask-shadow-style';
         const CSS_CONTENT = `
             a[href^="/answers/"] { display: none !important; }
             hr.trailing-divider { display: none !important; }
+            input { 
+                text-align: ${shouldCenter ? 'center' : 'inherit'} !important; 
+                padding-right: ${shouldCenter ? '40px' : '0'} !important;
+            }
+            input:focus {
+                text-align: left !important;
+                padding-right: 0 !important;
+            }
         `;
 
         // Try multiple potential shadow hosts
@@ -252,7 +263,9 @@ window.REX_HEADER = (function () {
                     style.textContent = CSS_CONTENT;
                     host.shadowRoot.appendChild(style);
                     injectedCount++;
-                    console.log(`[REX] Header: Ask AI hidden (shadow of ${host.tagName})`);
+                    console.log(`[REX] Header: Ask AI hidden (shadow of ${host.tagName})${shouldCenter ? ' and search centered' : ''}`);
+                } else {
+                    existingStyle.textContent = CSS_CONTENT;
                 }
 
                 // Check for nested shadow root (faceplate-search-input inside reddit-search-large)
@@ -265,13 +278,15 @@ window.REX_HEADER = (function () {
                         nestedStyle.id = nestedStyleId;
                         nestedStyle.textContent = CSS_CONTENT;
                         nestedHost.shadowRoot.appendChild(nestedStyle);
-                        console.log(`[REX] Header: Ask AI divider hidden (nested shadow of ${nestedHost.tagName})`);
+                        console.log(`[REX] Header: Ask AI divider hidden (nested shadow of ${nestedHost.tagName})${shouldCenter ? ' and search centered' : ''}`);
+                    } else {
+                        existingNestedStyle.textContent = CSS_CONTENT;
                     }
                 }
             } else {
                 if (existingStyle) {
                     existingStyle.remove();
-                    console.log(`[REX] Header: Ask AI shown (shadow of ${host.tagName})`);
+                    console.log(`[REX] Header: Ask AI shown and search un-centered (shadow of ${host.tagName})`);
                 }
 
                 // Remove from nested shadow root too
@@ -281,13 +296,14 @@ window.REX_HEADER = (function () {
                     const existingNestedStyle = nestedHost.shadowRoot.getElementById(nestedStyleId);
                     if (existingNestedStyle) {
                         existingNestedStyle.remove();
-                        console.log(`[REX] Header: Ask AI divider shown (nested shadow)`);
+                        console.log(`[REX] Header: Ask AI divider shown and search un-centered (nested shadow)`);
                     }
                 }
             }
         }
 
         // Also try to find and hide directly in the main DOM (fallback)
+        const searchInput = document.querySelector('input[placeholder="Find anything"]');
         if (shouldHide) {
             const askButton = document.querySelector('a[href="/answers/"]');
             if (askButton) {
@@ -298,6 +314,27 @@ window.REX_HEADER = (function () {
                 }
                 console.log('[REX] Header: Ask AI hidden (main DOM fallback)');
             }
+            if (searchInput) {
+                const applyCenter = () => {
+                    if (shouldCenter && document.activeElement !== searchInput) {
+                        searchInput.style.setProperty('text-align', 'center', 'important');
+                        searchInput.style.setProperty('padding-right', '40px', 'important');
+                    } else {
+                        searchInput.style.setProperty('text-align', 'left', 'important');
+                        searchInput.style.setProperty('padding-right', '0', 'important');
+                    }
+                };
+
+                // Add focus/blur listeners
+                searchInput.onfocus = () => {
+                    searchInput.style.setProperty('text-align', 'left', 'important');
+                    searchInput.style.setProperty('padding-right', '0', 'important');
+                };
+                searchInput.onblur = applyCenter;
+
+                // Initial apply
+                applyCenter();
+            }
         } else {
             const askButton = document.querySelector('a[href="/answers/"]');
             if (askButton) {
@@ -306,6 +343,12 @@ window.REX_HEADER = (function () {
                 if (divider && divider.tagName === 'HR') {
                     divider.style.display = '';
                 }
+            }
+            if (searchInput) {
+                searchInput.style.textAlign = '';
+                searchInput.style.paddingRight = '';
+                searchInput.onfocus = null;
+                searchInput.onblur = null;
             }
         }
 
@@ -356,7 +399,14 @@ window.REX_HEADER = (function () {
 
             // Use MutationObserver to re-apply Ask setting when DOM changes
             // This handles dynamic page loading where shadow DOMs appear later
+            let lastUrl = window.location.href;
             const observer = new MutationObserver(() => {
+                const currentUrl = window.location.href;
+                if (currentUrl !== lastUrl) {
+                    lastUrl = currentUrl;
+                    if (askHideEnabled) toggleAskVisibility(true);
+                }
+
                 if (askHideEnabled) {
                     toggleAskVisibility(true);
                 }
