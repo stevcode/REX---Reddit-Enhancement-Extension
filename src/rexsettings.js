@@ -14,6 +14,7 @@ window.REX_SETTINGS = (function () {
         rex_hide_ads: false,
         rex_hide_create: false,
         rex_hide_ask: false,
+        rex_show_subreddit_indicator: true,
         rex_sidebar_mode: 'Show', // Default for now
         rex_sidebar_collapse: false
     };
@@ -135,6 +136,7 @@ window.REX_SETTINGS = (function () {
                     ${createToggleRow("Hide 'Advertise on Reddit' Button", "Removes the megaphone icon from the header", "rex-toggle-ads", "rex_hide_ads")}
                     ${createToggleRow("Remove 'Create' Button", "Hides the Create Post (+) button from the header", "rex-toggle-create", "rex_hide_create")}
                     ${createToggleRow("Remove 'Ask AI' Button", "Hides the Ask button and divider from the search bar", "rex-toggle-ask", "rex_hide_ask")}
+                    ${createToggleRow("Show Current Subreddit In Header", "Shows the logo and name of the current subreddit next to the Reddit logo", "rex-toggle-sub-indicator", "rex_show_subreddit_indicator")}
                 </div>
 
                 <!-- SIDEBAR Section -->

@@ -65,6 +65,15 @@ window.REX_HEADER = (function () {
      * Creates or updates the subreddit indicator in the header
      */
     function updateSubredditIndicator() {
+        // Only run if the feature is enabled in settings
+        if (!showSubredditIndicator) {
+            const existingIndicator = document.getElementById(SUBREDDIT_INDICATOR_ID);
+            if (existingIndicator) {
+                existingIndicator.remove();
+            }
+            return;
+        }
+
         const subredditName = getSubredditFromUrl();
         const redditLogo = document.querySelector(REDDIT_LOGO_SELECTOR);
 
@@ -145,6 +154,8 @@ window.REX_HEADER = (function () {
         // Watch for URL changes (SPA navigation) and DOM rebuilds (page refresh)
         let lastUrl = window.location.href;
         const domObserver = new MutationObserver(() => {
+            if (!showSubredditIndicator) return;
+
             const subredditName = getSubredditFromUrl();
             const existingIndicator = document.getElementById(SUBREDDIT_INDICATOR_ID);
             const redditLogo = document.querySelector(REDDIT_LOGO_SELECTOR);
@@ -307,20 +318,21 @@ window.REX_HEADER = (function () {
     const adState = { tag: null };
     const createState = { tag: null };
     let askHideEnabled = false; // Track the setting
+    let showSubredditIndicator = true; // Track the subreddit indicator setting
 
     function init() {
         console.log('[REX] Header: Initializing');
 
-        // Initialize subreddit indicator feature
-        initSubredditIndicator();
-
         if (typeof chrome !== 'undefined' && chrome.storage && chrome.storage.sync) {
-            chrome.storage.sync.get(['rex_hide_ads', 'rex_hide_create', 'rex_hide_ask'], (items) => {
+            chrome.storage.sync.get(['rex_hide_ads', 'rex_hide_create', 'rex_hide_ask', 'rex_show_subreddit_indicator'], (items) => {
                 toggleVisibility(!!items.rex_hide_ads, AD_SELECTORS, 'rex-hide-ads-style', adState, 'Ads');
                 toggleVisibility(!!items.rex_hide_create, CREATE_SELECTOR, 'rex-hide-create-style', createState, 'Create');
 
                 askHideEnabled = !!items.rex_hide_ask;
                 toggleAskVisibility(askHideEnabled);
+
+                showSubredditIndicator = items.rex_show_subreddit_indicator !== false;
+                initSubredditIndicator();
             });
 
             chrome.storage.onChanged.addListener((changes, area) => {
@@ -334,6 +346,10 @@ window.REX_HEADER = (function () {
                     if (changes.rex_hide_ask) {
                         askHideEnabled = changes.rex_hide_ask.newValue;
                         toggleAskVisibility(askHideEnabled);
+                    }
+                    if (changes.rex_show_subreddit_indicator) {
+                        showSubredditIndicator = changes.rex_show_subreddit_indicator.newValue;
+                        updateSubredditIndicator();
                     }
                 }
             });
