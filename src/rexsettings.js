@@ -46,6 +46,13 @@ window.REX_SETTINGS = (function () {
         currentSettings[key] = value;
         if (typeof chrome !== 'undefined' && chrome.storage && chrome.storage.sync) {
             chrome.storage.sync.set({ [key]: value }, () => {
+                if (typeof chrome !== 'undefined' && chrome.runtime && chrome.runtime.lastError) {
+                    console.error('[REX] Failed to save setting:', key, value, chrome.runtime.lastError);
+                    if (typeof window !== 'undefined' && typeof window.alert === 'function') {
+                        window.alert('REX: Failed to save setting "' + key + '". Please try again.');
+                    }
+                    return;
+                }
                 console.log('[REX] Setting saved:', key, value);
             });
         }
