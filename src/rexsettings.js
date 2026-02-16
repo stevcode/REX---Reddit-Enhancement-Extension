@@ -151,6 +151,13 @@ window.REX_SETTINGS = (function () {
                     ${createToggleRow("Show Current Subreddit In Header", "Shows the logo and name of the current subreddit next to the Reddit logo", "rex-toggle-sub-indicator", "rex_show_subreddit_indicator")}
                 </div>
 
+                <!-- REDDIT FEED Section -->
+                <div class="mb-lg">
+                    <h2 class="${SECTION_HEADER_CLASS}">Reddit Feed</h2>
+                    ${createToggleRow("Hide 'RECENT POSTS'", "Hides the Recent Posts section from the right sidebar on feed pages", "rex-toggle-recent-posts", "rex_hide_recent_posts")}
+                    ${createToggleRow("Hide Reddit Footer", "Hides the Legal/Policy links (e.g. Privacy Policy, User Agreement) from the right sidebar", "rex-toggle-reddit-footer", "rex_hide_reddit_footer")}
+                </div>
+
                 <!-- SIDEBAR Section -->
                 <div class="mb-lg">
                     <h2 class="${SECTION_HEADER_CLASS}">Sidebar</h2>

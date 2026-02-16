@@ -23,6 +23,9 @@
                 "rexsettings.js",
                 "sidebar.js",
                 "redditheader.js",
+                "sidebar.js",
+                "redditheader.js",
+                "redditfeed.js",
                 "content.js"
             ],
             "run_at": "document_start"

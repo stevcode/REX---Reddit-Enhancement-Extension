@@ -16,6 +16,11 @@
         window.REX_HEADER.init();
     }
 
+    // Initialize Feed Logic (Recent Posts etc)
+    if (window.REX_FEED) {
+        window.REX_FEED.init();
+    }
+
     // Initialize REX Settings if we are on the settings page
     function initSettings() {
         if (window.location.href.includes('/settings') && window.REX_SETTINGS) {
