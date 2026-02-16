@@ -135,8 +135,10 @@ window.REX_HEADER = (function () {
         // Insert after the reddit logo's parent container (tooltip wrapper)
         // to avoid being inside the hover activation area
         const logoContainer = redditLogo.closest('rpl-tooltip') || redditLogo.parentNode;
-        logoContainer.parentNode.insertBefore(indicator, logoContainer.nextSibling);
-        console.log(`[REX] Header: Subreddit indicator added for r/${subredditName}`);
+        if (logoContainer && logoContainer.parentNode) {
+            logoContainer.parentNode.insertBefore(indicator, logoContainer.nextSibling);
+            console.log(`[REX] Header: Subreddit indicator added for r/${subredditName}`);
+        }
     }
 
     /**
