@@ -1,10 +1,17 @@
 /**
  * REX - Reddit Enhancement Extension
- * Sidebar Module: Handles collapsing of sidebar sections
+ * Sidebar Module: Handles collapsing of sidebar sections and hiding of specific links
  */
 
 window.REX_SIDEBAR = (function () {
     'use strict';
+
+    // Track active style states for link hiding
+    const activeStyles = {
+        popular: false,
+        explore: false,
+        community: false
+    };
 
     // Define which sections to collapse
     const SECTIONS_TO_COLLAPSE = [
@@ -42,6 +49,57 @@ window.REX_SIDEBAR = (function () {
     }
 
     /**
+     * Applies or removes styles for a specific root (Document or ShadowRoot)
+     * @param {Document|ShadowRoot} root 
+     */
+    function applyStylesToRoot(root) {
+        const rules = [
+            { key: 'popular', id: 'rex-hide-popular-style', selector: 'a[href*="/r/popular"], #popular-posts' },
+            { key: 'explore', id: 'rex-hide-explore-style', selector: 'a[href="/explore/"], #explore-communities' },
+            { key: 'community', id: 'rex-hide-create-community-style', selector: '.left-nav-create-community-button, a[href*="/subreddits/create"], #create-community-button' }
+        ];
+
+        rules.forEach(rule => {
+            const shouldHide = activeStyles[rule.key];
+            // Handle both Document (getElementById) and ShadowRoot (querySelector or getElementById if supported)
+            const existingStyle = root.getElementById ? root.getElementById(rule.id) : root.querySelector(`#${rule.id}`);
+
+            if (shouldHide) {
+                if (!existingStyle) {
+                    const style = document.createElement('style');
+                    style.id = rule.id;
+                    // Use !important and generic selector to ensure it overrides
+                    style.textContent = `${rule.selector} { display: none !important; }`;
+
+                    if (root.head) {
+                        root.head.appendChild(style);
+                    } else {
+                        root.appendChild(style);
+                    }
+                    // console.log(`[REX-Sidebar] Applied ${rule.key} style to root`, root);
+                }
+            } else {
+                if (existingStyle) {
+                    existingStyle.remove();
+                }
+            }
+        });
+    }
+
+    /**
+     * Updates visibility for all known roots (Main Doc + Shadow Roots)
+     */
+    function updateAllRoots() {
+        // Main Document
+        applyStylesToRoot(document);
+
+        // All Shadow Roots
+        const shadowRoots = findAllShadowRoots();
+        shadowRoots.forEach(root => applyStylesToRoot(root));
+        console.log(`[REX-Sidebar] Updated styles for document and ${shadowRoots.length} shadow roots`);
+    }
+
+    /**
      * Find and collapse specified sidebar sections
      * @returns {number} Count of newly collapsed sections
      */
@@ -56,21 +114,16 @@ window.REX_SIDEBAR = (function () {
         // Get details from main DOM
         const mainDetails = Array.from(document.querySelectorAll('details'));
         allDetailsElements.push(...mainDetails);
-        console.log(`[REX-Sidebar] Found ${mainDetails.length} details in main DOM`);
 
         // Get details from shadow DOMs
         const shadowRoots = findAllShadowRoots();
-        console.log(`[REX-Sidebar] Found ${shadowRoots.length} shadow roots`);
 
         for (const shadowRoot of shadowRoots) {
             const shadowDetails = Array.from(shadowRoot.querySelectorAll('details'));
             if (shadowDetails.length > 0) {
-                console.log(`[REX-Sidebar] Found ${shadowDetails.length} details in shadow DOM`);
                 allDetailsElements.push(...shadowDetails);
             }
         }
-
-        console.log(`[REX-Sidebar] Total details elements: ${allDetailsElements.length}`);
 
         // Process all details elements
         for (const details of allDetailsElements) {
@@ -80,7 +133,6 @@ window.REX_SIDEBAR = (function () {
             const summaryText = summary.textContent || '';
             const trimmedText = summaryText.trim();
 
-            // Debug: collect summary text snippets
             if (trimmedText) {
                 const snippet = trimmedText.substring(0, 50).replace(/\s+/g, ' ');
                 allSummaryTexts.push(snippet);
@@ -92,7 +144,6 @@ window.REX_SIDEBAR = (function () {
                     sectionsFoundThisRun.push(sectionName);
 
                     if (collapsedSections.has(sectionName)) {
-                        console.log(`[REX-Sidebar] ${sectionName} already processed`);
                         break;
                     }
 
@@ -100,12 +151,10 @@ window.REX_SIDEBAR = (function () {
 
                     if (isOpen) {
                         console.log(`[REX-Sidebar] ✓ Collapsing ${sectionName} section`);
-                        // Directly remove the open attribute instead of clicking
                         details.removeAttribute('open');
                         collapsedSections.add(sectionName);
                         newlyCollapsedCount++;
                     } else {
-                        console.log(`[REX-Sidebar] ${sectionName} section already collapsed`);
                         collapsedSections.add(sectionName);
                     }
                     break;
@@ -113,15 +162,11 @@ window.REX_SIDEBAR = (function () {
             }
         }
 
-        console.log(`[REX-Sidebar] All summary texts found:`, allSummaryTexts);
-        console.log(`[REX-Sidebar] Sections found this run:`, sectionsFoundThisRun);
-        console.log(`[REX-Sidebar] Total sections processed:`, Array.from(collapsedSections));
         return newlyCollapsedCount;
     }
 
     /**
      * Try to collapse with retries for dynamic content
-     * Keeps retrying until all sections are found or max retries reached
      */
     function attemptCollapse(retries = 30, delay = 600) {
         collapseSidebarSections();
@@ -132,38 +177,60 @@ window.REX_SIDEBAR = (function () {
         );
 
         if (allSectionsFound) {
-            console.log(`[REX-Sidebar] ✓ Successfully found and processed all ${SECTIONS_TO_COLLAPSE.length} sections!`);
-            // Remove the hiding CSS now that we're done
+            console.log(`[REX-Sidebar] ✓ Successfully found and processed all sections!`);
             const hideStyle = document.getElementById('rex-loader-hide');
-            if (hideStyle) {
-                hideStyle.remove();
-                console.log('[REX-Sidebar] Removed loader CSS, sections can now be toggled normally');
-            }
+            if (hideStyle) hideStyle.remove();
             return;
         }
 
         if (retries > 0) {
-            const remaining = SECTIONS_TO_COLLAPSE.filter(s => !collapsedSections.has(s));
-            console.log(`[REX-Sidebar] Still looking for: [${remaining.join(', ')}], retrying in ${delay}ms... (${retries} attempts left)`);
             setTimeout(() => attemptCollapse(retries - 1, delay), delay);
         } else {
-            const found = Array.from(collapsedSections);
-            const missing = SECTIONS_TO_COLLAPSE.filter(s => !collapsedSections.has(s));
-            console.log(`[REX-Sidebar] Finished. Found ${found.length}/${SECTIONS_TO_COLLAPSE.length} sections.`);
-            if (missing.length > 0) {
-                console.log(`[REX-Sidebar] ⚠ Missing sections (may not exist on this page): [${missing.join(', ')}]`);
-            }
-            // Remove the hiding CSS even if we didn't find all sections
             const hideStyle = document.getElementById('rex-loader-hide');
-            if (hideStyle) {
-                hideStyle.remove();
-                console.log('[REX-Sidebar] Removed loader CSS after finishing retries');
-            }
+            if (hideStyle) hideStyle.remove();
+        }
+    }
+
+    /**
+     * Initialize Settings Listeners for Sidebar Links
+     */
+    function initLinkHiding() {
+        if (typeof chrome !== 'undefined' && chrome.storage && chrome.storage.sync) {
+            chrome.storage.sync.get(['rex_hide_popular', 'rex_hide_explore', 'rex_hide_start_community'], (items) => {
+                activeStyles.popular = !!items.rex_hide_popular;
+                activeStyles.explore = !!items.rex_hide_explore;
+                activeStyles.community = !!items.rex_hide_start_community;
+                updateAllRoots();
+            });
+
+            chrome.storage.onChanged.addListener((changes, area) => {
+                if (area === 'sync') {
+                    let needsUpdate = false;
+                    if (changes.rex_hide_popular) {
+                        activeStyles.popular = changes.rex_hide_popular.newValue;
+                        needsUpdate = true;
+                    }
+                    if (changes.rex_hide_explore) {
+                        activeStyles.explore = changes.rex_hide_explore.newValue;
+                        needsUpdate = true;
+                    }
+                    if (changes.rex_hide_start_community) {
+                        activeStyles.community = changes.rex_hide_start_community.newValue;
+                        needsUpdate = true;
+                    }
+                    if (needsUpdate) {
+                        updateAllRoots();
+                    }
+                }
+            });
         }
     }
 
     function init() {
-        console.log('[REX-Sidebar] Initializing Sidebar Collapse Logic');
+        console.log('[REX-Sidebar] Initializing Sidebar Logic');
+
+        // Initialize Link Hiding (Settings-based)
+        initLinkHiding();
 
         // Inject CSS to hide details content during initial load (prevents flash)
         if (!document.getElementById('rex-loader-hide')) {
@@ -180,41 +247,58 @@ window.REX_SIDEBAR = (function () {
         // Initial attempt after page load
         if (document.readyState === 'loading') {
             document.addEventListener('DOMContentLoaded', () => {
-                console.log('[REX-Sidebar] DOM loaded, attempting to collapse sidebar sections');
                 attemptCollapse();
             });
         } else {
-            console.log('[REX-Sidebar] Document ready, attempting to collapse sidebar sections');
             attemptCollapse();
         }
 
-        // Watch for dynamic content changes (for SPA navigation)
+        // Watch for dynamic content changes
         if (!observer) {
             observer = new MutationObserver((mutations) => {
+                let shouldCheckCollapse = false;
+                let newNodesFound = false;
+
                 for (const mutation of mutations) {
                     if (mutation.addedNodes.length > 0) {
-                        // Check if the added content might contain any of our target sections
+                        newNodesFound = true;
+                        // Check nodes for collapse targets
                         for (const node of mutation.addedNodes) {
                             if (node.nodeType === Node.ELEMENT_NODE) {
+                                // If this node is or contains a shadow root, we need to inject styles
+                                if (node.shadowRoot) {
+                                    applyStylesToRoot(node.shadowRoot);
+                                }
+                                // Also scan descendants for shadow roots
+                                const nestedShadows = findAllShadowRoots(node);
+                                nestedShadows.forEach(root => applyStylesToRoot(root));
+
                                 const textContent = node.textContent || '';
-                                // Check if any target section is in the new content
                                 const hasTargetSection = SECTIONS_TO_COLLAPSE.some(section =>
                                     textContent.toUpperCase().includes(section.toUpperCase())
                                 );
                                 if (hasTargetSection) {
-                                    console.log('[REX-Sidebar] Detected sidebar section added to DOM, attempting to collapse');
-                                    // Clear our tracking and start fresh
-                                    collapsedSections.clear();
-                                    attemptCollapse(5, 200);
-                                    break;
+                                    shouldCheckCollapse = true;
                                 }
                             }
                         }
                     }
                 }
+
+                if (newNodesFound) {
+                    // Ensure styles are applied to any new shadow roots we might have missed
+                    // or that appeared deeper in the tree
+                    updateAllRoots();
+                }
+
+                if (shouldCheckCollapse) {
+                    console.log('[REX-Sidebar] New content detected, checking sidebar sections');
+                    collapsedSections.clear();
+                    attemptCollapse(5, 200);
+                }
             });
 
-            // Start observing after a short delay to let the page initialize
+            // Start observing
             setTimeout(() => {
                 observer.observe(document.body, {
                     childList: true,
@@ -230,6 +314,10 @@ window.REX_SIDEBAR = (function () {
         collapseNow: () => {
             collapsedSections.clear();
             attemptCollapse(5, 200);
+        },
+        debug: () => {
+            console.log('Active Styles:', activeStyles);
+            updateAllRoots();
         }
     };
 })();
