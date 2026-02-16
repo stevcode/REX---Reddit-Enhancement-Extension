@@ -16,7 +16,12 @@ window.REX_SETTINGS = (function () {
         rex_hide_ask: false,
         rex_show_subreddit_indicator: true,
         rex_sidebar_mode: 'Show', // Default for now
-        rex_sidebar_collapse: false
+        rex_sidebar_collapse: false,
+        rex_hide_explore: false,
+        rex_hide_popular: false,
+        rex_hide_start_community: false,
+        rex_hide_recent_posts: false,
+        rex_hide_reddit_footer: false
     };
 
     /**
@@ -149,6 +154,9 @@ window.REX_SETTINGS = (function () {
                 <!-- SIDEBAR Section -->
                 <div class="mb-lg">
                     <h2 class="${SECTION_HEADER_CLASS}">Sidebar</h2>
+                    ${createToggleRow("Hide 'Popular' Link", "Removes the Popular link from the sidebar", "rex-toggle-popular", "rex_hide_popular")}
+                    ${createToggleRow("Hide 'Explore' Link", "Removes the Explore link from the sidebar", "rex-toggle-explore", "rex_hide_explore")}
+                    ${createToggleRow("Hide 'Start a community' Button", "Removes the Start a community button from the sidebar", "rex-toggle-start-community", "rex_hide_start_community")}
                     ${['GAMES ON REDDIT', 'MODERATION', 'CUSTOM FEEDS', 'RECENT', 'COMMUNITIES', 'RESOURCES'].map(item => createSelectRow(item)).join('')}
                 </div>
 

@@ -1,0 +1,1 @@
+Use the browser tool to inspect the DOM and find elements to interact with. Never guess.
