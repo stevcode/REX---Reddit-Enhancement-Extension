@@ -16,7 +16,12 @@ window.REX_SETTINGS = (function () {
         rex_hide_ask: false,
         rex_show_subreddit_indicator: true,
         rex_sidebar_mode: 'Show', // Default for now
-        rex_sidebar_collapse: false
+        rex_sidebar_collapse: false,
+        rex_hide_explore: false,
+        rex_hide_popular: false,
+        rex_hide_start_community: false,
+        rex_hide_recent_posts: false,
+        rex_hide_reddit_footer: false
     };
 
     /**
