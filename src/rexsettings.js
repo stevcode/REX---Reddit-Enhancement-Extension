@@ -9,6 +9,55 @@ window.REX_SETTINGS = (function () {
     const REX_TAB_ID = 'rex-settings-tab';
     const REX_PANEL_ID = 'rex-settings-panel';
 
+    // Default settings
+    let currentSettings = {
+        rex_hide_ads: false,
+        rex_hide_create: false,
+        rex_hide_ask: false,
+        rex_show_subreddit_indicator: true,
+        rex_sidebar_mode: 'Show', // Default for now
+        rex_sidebar_collapse: false
+    };
+
+    /**
+     * Loads settings from chrome.storage.sync
+     */
+    function loadSettings() {
+        return new Promise((resolve) => {
+            if (typeof chrome !== 'undefined' && chrome.storage && chrome.storage.sync) {
+                chrome.storage.sync.get(currentSettings, (items) => {
+                    currentSettings = { ...currentSettings, ...items };
+                    console.log('[REX] Settings loaded:', currentSettings);
+                    resolve(currentSettings);
+                });
+            } else {
+                console.warn('[REX] chrome.storage not available, using defaults');
+                resolve(currentSettings);
+            }
+        });
+    }
+
+    /**
+     * Saves a setting to chrome.storage.sync
+     * @param {string} key 
+     * @param {any} value 
+     */
+    function saveSetting(key, value) {
+        currentSettings[key] = value;
+        if (typeof chrome !== 'undefined' && chrome.storage && chrome.storage.sync) {
+            chrome.storage.sync.set({ [key]: value }, () => {
+                if (typeof chrome !== 'undefined' && chrome.runtime && chrome.runtime.lastError) {
+                    console.error('[REX] Failed to save setting:', key, value, chrome.runtime.lastError);
+                    if (typeof window !== 'undefined' && typeof window.alert === 'function') {
+                        window.alert('REX: Failed to save setting "' + key + '". Please try again.');
+                    }
+                    return;
+                }
+                console.log('[REX] Setting saved:', key, value);
+            });
+        }
+    }
+
     /**
      * Creates the HTML structure for the REX Settings panel
      */
@@ -28,9 +77,14 @@ window.REX_SETTINGS = (function () {
         const ROW_DESC_CLASS = "text-neutral-content-weak text-[12px] mt-2xs";
 
         // Helper to create a native-like toggle row using faceplate-switch-input
-        // We attach a simple visual toggle handler.
-        const createToggleRow = (label, desc, id) => `
-            <label class="block normal-case cursor-pointer" onclick="const s=this.querySelector('faceplate-switch-input'); if(s){ const isChecked = s.getAttribute('aria-checked') === 'true'; s.setAttribute('aria-checked', !isChecked); if(!isChecked) s.setAttribute('checked', ''); else s.removeAttribute('checked'); }">
+        // We use data attributes to identify the setting and handle events in init/after render
+        const createToggleRow = (label, desc, id, settingKey) => {
+            const isChecked = !!currentSettings[settingKey];
+            const checkedAttr = isChecked ? 'checked=""' : '';
+            const ariaChecked = isChecked ? 'true' : 'false';
+
+            return `
+            <label class="block normal-case cursor-pointer rex-toggle-label" data-setting-key="${settingKey}">
                 <div class="${ROW_CONTAINER_CLASS}">
                     <span class="flex flex-col flex-1 pr-md">
                         <span class="${ROW_LABEL_CLASS}">${label}</span>
@@ -40,16 +94,18 @@ window.REX_SETTINGS = (function () {
                          <div class="flex items-center justify-center h-lg">
                             <faceplate-switch-input 
                                 id="${id}"
-                                class="flex-col mr-xs" 
+                                class="flex-col mr-xs pointer-events-none" 
                                 role="checkbox" 
-                                aria-checked="false"
-                                aria-label="${label}">
+                                aria-checked="${ariaChecked}"
+                                aria-label="${label}"
+                                ${checkedAttr}>
                             </faceplate-switch-input>
                         </div>
                     </span>
                 </div>
             </label>
         `;
+        };
 
         // Helper to create a select/dropdown row (visual button styled like Reddit's)
         const createSelectRow = (label, options) => `
@@ -84,7 +140,10 @@ window.REX_SETTINGS = (function () {
                 <!-- REDDIT HEADER Section -->
                 <div class="mb-lg">
                     <h2 class="${SECTION_HEADER_CLASS}">Reddit Header</h2>
-                    ${createToggleRow("Hide 'Advertise on Reddit' Button", "Removes the megaphone icon from the header", "rex-toggle-ads")}
+                    ${createToggleRow("Hide 'Advertise on Reddit' Button", "Removes the megaphone icon from the header", "rex-toggle-ads", "rex_hide_ads")}
+                    ${createToggleRow("Remove 'Create' Button", "Hides the Create Post (+) button from the header", "rex-toggle-create", "rex_hide_create")}
+                    ${createToggleRow("Remove 'Ask AI' Button", "Hides the Ask button and divider from the search bar", "rex-toggle-ask", "rex_hide_ask")}
+                    ${createToggleRow("Show Current Subreddit In Header", "Shows the logo and name of the current subreddit next to the Reddit logo", "rex-toggle-sub-indicator", "rex_show_subreddit_indicator")}
                 </div>
 
                 <!-- SIDEBAR Section -->
@@ -96,7 +155,7 @@ window.REX_SETTINGS = (function () {
                 <!-- COMMENTS PAGE Section -->
                 <div class="mb-lg">
                     <h2 class="${SECTION_HEADER_CLASS}">Comments Page</h2>
-                     ${createToggleRow("Collapse Sidebar", "Automatically collapse the right sidebar on comment pages", "rex-toggle-sidebar")}
+                     ${createToggleRow("Collapse Sidebar", "Automatically collapse the right sidebar on comment pages", "rex-toggle-sidebar", "rex_sidebar_collapse")}
                 </div>
             </div>
         `;
@@ -212,12 +271,16 @@ window.REX_SETTINGS = (function () {
             });
 
             let panel = document.getElementById(REX_PANEL_ID);
-            if (!panel) {
-                panel = document.createElement('div');
-                panel.id = REX_PANEL_ID;
-                panel.innerHTML = createPanelHTML();
-                mainContainerInner.appendChild(panel);
-            }
+            // Always recreate panel to ensure up-to-date settings render
+            if (panel) panel.remove();
+
+            panel = document.createElement('div');
+            panel.id = REX_PANEL_ID;
+            panel.innerHTML = createPanelHTML();
+            mainContainerInner.appendChild(panel);
+
+            attachListeners(panel);
+
             panel.style.display = 'block';
 
             // NOTE: We do NOT push history state to avoid fighting Reddit's router.
@@ -225,19 +288,58 @@ window.REX_SETTINGS = (function () {
         }
     }
 
+    /**
+     * Attaches event listeners to the settings panel
+     * @param {HTMLElement} panel 
+     */
+    function attachListeners(panel) {
+        const toggles = panel.querySelectorAll('.rex-toggle-label');
+        toggles.forEach(label => {
+            label.addEventListener('click', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+
+                const switchInput = label.querySelector('faceplate-switch-input');
+                const settingKey = label.dataset.settingKey;
+
+                if (switchInput && settingKey) {
+                    // Current state
+                    const isChecked = switchInput.hasAttribute('checked');
+                    const newState = !isChecked; // Toggle
+
+                    // Visual Update: precise attribute manipulation matching native behavior
+                    switchInput.setAttribute('aria-checked', newState ? 'true' : 'false');
+
+                    if (newState) {
+                        switchInput.setAttribute('checked', '');
+                    } else {
+                        switchInput.removeAttribute('checked');
+                    }
+
+                    // Save
+                    saveSetting(settingKey, newState);
+                }
+            });
+        });
+    }
+
     return {
         init: function () {
             console.log('[REX] Initializing Settings Injector');
-            injectTab();
+            // Load settings immediately on init
+            loadSettings().then(() => {
+                injectTab();
 
-            const observer = new MutationObserver(() => {
-                // If tab is gone (navigation/render), put it back
-                if (!document.getElementById(REX_TAB_ID)) {
-                    injectTab();
-                }
+                const observer = new MutationObserver(() => {
+                    // If tab is gone (navigation/render), put it back
+                    if (!document.getElementById(REX_TAB_ID)) {
+                        injectTab();
+                    }
+                });
+
+                observer.observe(document.body, { childList: true, subtree: true });
             });
-
-            observer.observe(document.body, { childList: true, subtree: true });
-        }
+        },
+        save: saveSetting, // Expose save for inline handlers
     };
 })();
