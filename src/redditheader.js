@@ -106,8 +106,8 @@ window.REX_HEADER = (function () {
             gap: 6px;
         `;
 
-        // Create the logo image if available
-        if (logoUrl) {
+        // Create the logo image if available and safe
+        if (typeof logoUrl === 'string' && logoUrl.startsWith('https://')) {
             const logoImg = document.createElement('img');
             logoImg.src = logoUrl;
             logoImg.alt = `r/${subredditName} icon`;
