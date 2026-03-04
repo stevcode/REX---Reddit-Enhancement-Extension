@@ -20,9 +20,8 @@
                 "https://old.reddit.com/*"
             ],
             "js": [
+                "common.js",
                 "rexsettings.js",
-                "sidebar.js",
-                "redditheader.js",
                 "sidebar.js",
                 "redditheader.js",
                 "redditfeed.js",
