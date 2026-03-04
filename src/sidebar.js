@@ -27,26 +27,7 @@ window.REX_SIDEBAR = (function () {
     const collapsedSections = new Set();
     let observer = null;
 
-    /**
-     * Find all shadow roots in the document
-     * @param {Element} root - Root element to search from
-     * @returns {Array} Array of shadow roots
-     */
-    function findAllShadowRoots(root = document.body) {
-        const shadowRoots = [];
-        const walker = document.createTreeWalker(root, NodeFilter.SHOW_ELEMENT);
 
-        let node;
-        while (node = walker.nextNode()) {
-            if (node.shadowRoot) {
-                shadowRoots.push(node.shadowRoot);
-                // Recursively find shadow roots inside shadow roots
-                shadowRoots.push(...findAllShadowRoots(node.shadowRoot));
-            }
-        }
-
-        return shadowRoots;
-    }
 
     /**
      * Applies or removes styles for a specific root (Document or ShadowRoot)
@@ -94,7 +75,7 @@ window.REX_SIDEBAR = (function () {
         applyStylesToRoot(document);
 
         // All Shadow Roots
-        const shadowRoots = findAllShadowRoots();
+        const shadowRoots = window.REX_COMMON.findAllShadowRoots();
         shadowRoots.forEach(root => applyStylesToRoot(root));
         console.log(`[REX-Sidebar] Updated styles for document and ${shadowRoots.length} shadow roots`);
     }
@@ -116,7 +97,7 @@ window.REX_SIDEBAR = (function () {
         allDetailsElements.push(...mainDetails);
 
         // Get details from shadow DOMs
-        const shadowRoots = findAllShadowRoots();
+        const shadowRoots = window.REX_COMMON.findAllShadowRoots();
 
         for (const shadowRoot of shadowRoots) {
             const shadowDetails = Array.from(shadowRoot.querySelectorAll('details'));
@@ -270,7 +251,7 @@ window.REX_SIDEBAR = (function () {
                                     applyStylesToRoot(node.shadowRoot);
                                 }
                                 // Also scan descendants for shadow roots
-                                const nestedShadows = findAllShadowRoots(node);
+                                const nestedShadows = window.REX_COMMON.findAllShadowRoots(node);
                                 nestedShadows.forEach(root => applyStylesToRoot(root));
 
                                 const textContent = node.textContent || '';

@@ -12,15 +12,6 @@ window.REX_HEADER = (function () {
     const REDDIT_LOGO_SELECTOR = '#reddit-logo';
     const SUBREDDIT_INDICATOR_ID = 'rex-subreddit-indicator';
 
-    /**
-     * Extracts subreddit name from the current URL
-     * Works for both subreddit pages (/r/name/) and post pages (/r/name/comments/...)
-     * @returns {string|null} The subreddit name (e.g., "meat") or null if not on a subreddit
-     */
-    function getSubredditFromUrl() {
-        const match = window.location.pathname.match(/^\/r\/([^\/]+)/);
-        return match ? match[1] : null;
-    }
 
     /**
      * Finds the subreddit logo URL from the page
@@ -50,7 +41,7 @@ window.REX_HEADER = (function () {
         if (iconImg) return iconImg.src;
 
         // Method 3: Look for images with matching alt text pattern
-        const subredditName = getSubredditFromUrl();
+        const subredditName = window.REX_COMMON.getSubredditName();
         if (subredditName) {
             const altImg = allImgs.find(img =>
                 img.alt && img.alt.toLowerCase().includes(`r/${subredditName.toLowerCase()} icon`)
@@ -74,7 +65,7 @@ window.REX_HEADER = (function () {
             return;
         }
 
-        const subredditName = getSubredditFromUrl();
+        const subredditName = window.REX_COMMON.getSubredditName();
         const redditLogo = document.querySelector(REDDIT_LOGO_SELECTOR);
 
         // Remove existing indicator if present
@@ -158,7 +149,7 @@ window.REX_HEADER = (function () {
         const domObserver = new MutationObserver(() => {
             if (!showSubredditIndicator) return;
 
-            const subredditName = getSubredditFromUrl();
+            const subredditName = window.REX_COMMON.getSubredditName();
             const existingIndicator = document.getElementById(SUBREDDIT_INDICATOR_ID);
             const redditLogo = document.querySelector(REDDIT_LOGO_SELECTOR);
 
@@ -227,7 +218,7 @@ window.REX_HEADER = (function () {
      * Searches through all shadow roots to find the button
      */
     function toggleAskVisibility(shouldHide) {
-        const isSubreddit = !!getSubredditFromUrl();
+        const isSubreddit = !!window.REX_COMMON.getSubredditName();
         const shouldCenter = shouldHide && !isSubreddit;
 
         const STYLE_ID = 'rex-hide-ask-shadow-style';

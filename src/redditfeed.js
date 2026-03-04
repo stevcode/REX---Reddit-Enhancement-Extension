@@ -53,31 +53,14 @@ window.REX_FEED = (function () {
         reddit_footer: false
     };
 
-    /**
-     * Find all shadow roots in the document (reused logic pattern)
-     * @param {Element} root - Root element to search from
-     * @returns {Array} Array of shadow roots
-     */
-    function findAllShadowRoots(root = document.body) {
-        const shadowRoots = [];
-        const walker = document.createTreeWalker(root, NodeFilter.SHOW_ELEMENT);
 
-        let node;
-        while (node = walker.nextNode()) {
-            if (node.shadowRoot) {
-                shadowRoots.push(node.shadowRoot);
-                shadowRoots.push(...findAllShadowRoots(node.shadowRoot));
-            }
-        }
-        return shadowRoots;
-    }
 
     /**
      * Updates visibility for all known roots
      */
     function updateAllRoots() {
         applyStylesToRoot(document);
-        const shadowRoots = findAllShadowRoots();
+        const shadowRoots = window.REX_COMMON.findAllShadowRoots();
         shadowRoots.forEach(root => applyStylesToRoot(root));
     }
 

@@ -18,6 +18,9 @@ window.REX_COMMON = (function () {
     let cachedPostViewTypeUrl = null;
     let cachedPostViewType = null;
 
+    let cachedSubredditNameUrl = null;
+    let cachedSubredditName = null;
+
     /**
      * Determines whether the current Reddit page is displaying old reddit or new reddit.
      * @returns {'old' | 'new' | 'unknown'}
@@ -175,10 +178,53 @@ window.REX_COMMON = (function () {
         return viewType;
     }
 
+    /**
+     * Extracts subreddit name from the current URL. Uses a cache.
+     * Works for both subreddit pages (/r/name/) and post pages (/r/name/comments/...)
+     * @returns {string | null} The subreddit name (e.g., "meat") or null if not on a subreddit
+     */
+    function getSubredditName() {
+        const currentUrl = window.location.href;
+        if (cachedSubredditNameUrl === currentUrl && cachedSubredditName !== undefined) {
+            return cachedSubredditName;
+        }
+
+        const match = window.location.pathname.match(/^\/r\/([^\/]+)/);
+        const name = match ? match[1] : null;
+
+        cachedSubredditNameUrl = currentUrl;
+        cachedSubredditName = name;
+
+        return name;
+    }
+
+    /**
+     * Find all shadow roots in the document
+     * @param {Element} root - Root element to search from
+     * @returns {Array} Array of shadow roots
+     */
+    function findAllShadowRoots(root = document.body) {
+        const shadowRoots = [];
+        const walker = document.createTreeWalker(root, NodeFilter.SHOW_ELEMENT);
+
+        let node;
+        while (node = walker.nextNode()) {
+            if (node.shadowRoot) {
+                shadowRoots.push(node.shadowRoot);
+                // Recursively find shadow roots inside shadow roots
+                shadowRoots.push(...findAllShadowRoots(node.shadowRoot));
+            }
+        }
+
+        return shadowRoots;
+    }
+
     return {
         getRedditVersion,
         getPageType,
         getFeedType,
-        getPostViewType
+        getPostViewType,
+        getSubredditName,
+        findAllShadowRoots
     };
 })();
