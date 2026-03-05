@@ -6,11 +6,11 @@
 window.REX_SIDEBAR = (function () {
     'use strict';
 
-    // Track active style states for link hiding
     const activeStyles = {
         popular: false,
         explore: false,
-        community: false
+        community: false,
+        news: false
     };
 
     // Define which sections to collapse
@@ -37,6 +37,7 @@ window.REX_SIDEBAR = (function () {
         const rules = [
             { key: 'popular', id: 'rex-hide-popular-style', selector: 'a[href*="/r/popular"], #popular-posts' },
             { key: 'explore', id: 'rex-hide-explore-style', selector: 'a[href="/explore/"], #explore-communities' },
+            { key: 'news', id: 'rex-hide-news-style', selector: 'li#news-posts, a[href="/?feed=news"]' },
             { key: 'community', id: 'rex-hide-create-community-style', selector: '.left-nav-create-community-button, a[href*="/subreddits/create"], #create-community-button' }
         ];
 
@@ -177,10 +178,11 @@ window.REX_SIDEBAR = (function () {
      */
     function initLinkHiding() {
         if (typeof chrome !== 'undefined' && chrome.storage && chrome.storage.sync) {
-            chrome.storage.sync.get(['rex_hide_popular', 'rex_hide_explore', 'rex_hide_start_community'], (items) => {
+            chrome.storage.sync.get(['rex_hide_popular', 'rex_hide_explore', 'rex_hide_start_community', 'rex_hide_news'], (items) => {
                 activeStyles.popular = !!items.rex_hide_popular;
                 activeStyles.explore = !!items.rex_hide_explore;
                 activeStyles.community = !!items.rex_hide_start_community;
+                activeStyles.news = !!items.rex_hide_news;
                 updateAllRoots();
             });
 
@@ -197,6 +199,10 @@ window.REX_SIDEBAR = (function () {
                     }
                     if (changes.rex_hide_start_community) {
                         activeStyles.community = changes.rex_hide_start_community.newValue;
+                        needsUpdate = true;
+                    }
+                    if (changes.rex_hide_news) {
+                        activeStyles.news = changes.rex_hide_news.newValue;
                         needsUpdate = true;
                     }
                     if (needsUpdate) {
