@@ -29,5 +29,16 @@
             ],
             "run_at": "document_start"
         }
+    ],
+    "web_accessible_resources": [
+        {
+            "resources": [
+                "icons/*"
+            ],
+            "matches": [
+                "https://www.reddit.com/*",
+                "https://sh.reddit.com/*"
+            ]
+        }
     ]
 }

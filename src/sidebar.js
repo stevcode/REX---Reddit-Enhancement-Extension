@@ -10,7 +10,8 @@ window.REX_SIDEBAR = (function () {
         popular: false,
         explore: false,
         community: false,
-        news: false
+        news: false,
+        restoreAll: false
     };
 
     // Define which sections to collapse
@@ -66,6 +67,110 @@ window.REX_SIDEBAR = (function () {
                 }
             }
         });
+
+        injectAllLink(root);
+    }
+
+    /**
+     * Injects the 'All' link below the 'Popular' link if enabled
+     * @param {Document|ShadowRoot} root
+     */
+    function injectAllLink(root) {
+        const existing = root.getElementById ? root.getElementById('rex-all-posts') : root.querySelector('#rex-all-posts');
+
+        if (!activeStyles.restoreAll) {
+            if (existing) existing.remove();
+            return;
+        }
+
+        const isAllActive = window.location.pathname.startsWith('/r/all');
+
+        if (existing) {
+            // Re-evaluate active state for SPA navigation updates
+            const link = existing.querySelector('a');
+            if (link) {
+                if (isAllActive) {
+                    link.setAttribute('aria-current', 'page');
+                } else {
+                    link.removeAttribute('aria-current');
+                }
+            }
+
+            // Update the icon if it has already been injected as an image
+            const img = existing.querySelector('img');
+            if (img) {
+                const iconName = isAllActive ? 'all-icon-active.png' : 'all-icon.png';
+                const iconPath = typeof chrome !== 'undefined' && chrome.runtime && chrome.runtime.getURL ? chrome.runtime.getURL(`icons/${iconName}`) : null;
+                // Make sure we don't trigger unnecessary re-renders if path is already correct
+                if (iconPath && img.src !== iconPath) {
+                    img.src = iconPath;
+                }
+            }
+            return; // Already injected and evaluated
+        }
+
+        const popular = root.getElementById ? root.getElementById('popular-posts') : root.querySelector('#popular-posts');
+        if (!popular) return; // Wait until popular exists to append after it
+
+        const clone = popular.cloneNode(true);
+        clone.id = 'rex-all-posts';
+
+        // Update link
+        const link = clone.querySelector('a');
+        if (link) {
+            link.href = '/r/all/';
+
+            if (isAllActive) {
+                link.setAttribute('aria-current', 'page');
+            } else {
+                link.removeAttribute('aria-current');
+            }
+
+            // Update Text Node. Search spans for text content "Popular"
+            const walker = document.createTreeWalker(clone, NodeFilter.SHOW_TEXT, null);
+            let node;
+            while ((node = walker.nextNode())) {
+                if (node.nodeValue.trim() === 'Popular') {
+                    node.nodeValue = node.nodeValue.replace('Popular', 'All');
+                }
+            }
+
+            // Replace SVG icon with a placeholder IMG
+            // Explain to user: It looks for an icon in the extension bundle, otherwise falls back to a dummy SVG string.
+            const svg = clone.querySelector('svg');
+            if (svg) {
+                const iconName = isAllActive ? 'all-icon-active.png' : 'all-icon.png';
+                const iconPath = typeof chrome !== 'undefined' && chrome.runtime && chrome.runtime.getURL ? chrome.runtime.getURL(`icons/${iconName}`) : null;
+
+                if (iconPath) {
+                    const img = document.createElement('img');
+                    img.src = iconPath;
+                    img.style.width = '20px';
+                    img.style.height = '20px';
+                    img.style.objectFit = 'contain';
+
+                    // Maintain Reddit's icon spacing classes if any
+                    img.className = svg.className.baseVal || svg.className;
+                    svg.replaceWith(img);
+                } else {
+                    // Fallback visually identical dummy circle in case extension API isn't ready
+                    const dummySvg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+                    dummySvg.setAttribute('viewBox', '0 0 24 24');
+                    dummySvg.setAttribute('fill', 'currentColor');
+                    if (svg.className.baseVal) {
+                        dummySvg.setAttribute('class', svg.className.baseVal);
+                    }
+                    const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+                    circle.setAttribute('cx', '12');
+                    circle.setAttribute('cy', '12');
+                    circle.setAttribute('r', '10');
+                    dummySvg.appendChild(circle);
+                    svg.replaceWith(dummySvg);
+                }
+            }
+
+            popular.after(clone);
+        }
     }
 
     /**
@@ -178,11 +283,12 @@ window.REX_SIDEBAR = (function () {
      */
     function initLinkHiding() {
         if (typeof chrome !== 'undefined' && chrome.storage && chrome.storage.sync) {
-            chrome.storage.sync.get(['rex_hide_popular', 'rex_hide_explore', 'rex_hide_start_community', 'rex_hide_news'], (items) => {
+            chrome.storage.sync.get(['rex_hide_popular', 'rex_hide_explore', 'rex_hide_start_community', 'rex_hide_news', 'rex_restore_all'], (items) => {
                 activeStyles.popular = !!items.rex_hide_popular;
                 activeStyles.explore = !!items.rex_hide_explore;
                 activeStyles.community = !!items.rex_hide_start_community;
                 activeStyles.news = !!items.rex_hide_news;
+                activeStyles.restoreAll = !!items.rex_restore_all;
                 updateAllRoots();
             });
 
@@ -203,6 +309,10 @@ window.REX_SIDEBAR = (function () {
                     }
                     if (changes.rex_hide_news) {
                         activeStyles.news = changes.rex_hide_news.newValue;
+                        needsUpdate = true;
+                    }
+                    if (changes.rex_restore_all) {
+                        activeStyles.restoreAll = changes.rex_restore_all.newValue;
                         needsUpdate = true;
                     }
                     if (needsUpdate) {

@@ -19,6 +19,7 @@ window.REX_SETTINGS = (function () {
         rex_sidebar_collapse: false,
         rex_hide_explore: false,
         rex_hide_popular: false,
+        rex_restore_all: false,
         rex_hide_start_community: false,
         rex_hide_news: false,
         rex_hide_recent_posts: false,
@@ -163,6 +164,7 @@ window.REX_SETTINGS = (function () {
                 <div class="mb-lg">
                     <h2 class="${SECTION_HEADER_CLASS}">Sidebar</h2>
                     ${createToggleRow("Hide 'Popular' Link", "Removes the Popular link from the sidebar", "rex-toggle-popular", "rex_hide_popular")}
+                    ${createToggleRow("Restore 'All' Link", "Adds a link to r/all below the Popular link", "rex-toggle-restore-all", "rex_restore_all")}
                     ${createToggleRow("Hide 'Explore' Link", "Removes the Explore link from the sidebar", "rex-toggle-explore", "rex_hide_explore")}
                     ${createToggleRow("Hide 'News' Link", "Removes the News link from the sidebar", "rex-toggle-news", "rex_hide_news")}
                     ${createToggleRow("Hide 'Start a community' Button", "Removes the Start a community button from the sidebar", "rex-toggle-start-community", "rex_hide_start_community")}
