@@ -18,7 +18,39 @@ window.REX_FEED = (function () {
             // Target the custom element <recent-posts>
             // Also target potential container classes if the tag changes, based on inspection
             { key: 'recent_posts', id: 'rex-hide-recent-posts-style', selector: 'recent-posts, shreddit-recent-posts' },
-            { key: 'reddit_footer', id: 'rex-hide-reddit-footer-style', selector: 'div.legal-links' }
+            { key: 'reddit_footer', id: 'rex-hide-reddit-footer-style', selector: 'div.legal-links' },
+            {
+                key: 'trending',
+                id: 'rex-hide-trending-style',
+                css: `
+                    /* Hide the inner carousel components */
+                    search-dynamic-id-cache-controller[search-telemetry-source="popular_carousel"],
+                    shreddit-gallery-carousel[data-faceplate-tracking-context*="popular_carousel"] {
+                        display: none !important;
+                    }
+                    
+                    /* Hide adjacent hr dividers */
+                    search-dynamic-id-cache-controller[search-telemetry-source="popular_carousel"] + hr,
+                    shreddit-gallery-carousel[data-faceplate-tracking-context*="popular_carousel"] + hr {
+                        display: none !important;
+                    }
+
+                    /* Unflinchingly target the main layout wrappers (masthead and margin div) */
+                    div.masthead:has(search-dynamic-id-cache-controller[search-telemetry-source="popular_carousel"]),
+                    div.masthead:has(shreddit-gallery-carousel[data-faceplate-tracking-context*="popular_carousel"]),
+                    div:has(> search-dynamic-id-cache-controller[search-telemetry-source="popular_carousel"]) {
+                        display: none !important;
+                        margin: 0 !important;
+                        padding: 0 !important;
+                        height: 0 !important;
+                    }
+
+                    /* Hide any hr dividers following the wrapper divs */
+                    div.masthead:has(search-dynamic-id-cache-controller[search-telemetry-source="popular_carousel"]) + hr {
+                        display: none !important;
+                    }
+                `
+            }
         ];
 
         rules.forEach(rule => {
@@ -31,7 +63,11 @@ window.REX_FEED = (function () {
                 if (!existingStyle) {
                     const style = document.createElement('style');
                     style.id = rule.id;
-                    style.textContent = `${rule.selector} { display: none !important; }`;
+                    if (rule.css) {
+                        style.textContent = rule.css;
+                    } else {
+                        style.textContent = `${rule.selector} { display: none !important; }`;
+                    }
 
                     if (root.head) {
                         root.head.appendChild(style);
@@ -50,7 +86,8 @@ window.REX_FEED = (function () {
     // Active state
     const activeStyles = {
         recent_posts: false,
-        reddit_footer: false
+        reddit_footer: false,
+        trending: false
     };
 
 
@@ -69,9 +106,10 @@ window.REX_FEED = (function () {
      */
     function initSettings() {
         if (typeof chrome !== 'undefined' && chrome.storage && chrome.storage.sync) {
-            chrome.storage.sync.get(['rex_hide_recent_posts', 'rex_hide_reddit_footer'], (items) => {
+            chrome.storage.sync.get(['rex_hide_recent_posts', 'rex_hide_reddit_footer', 'rex_hide_trending'], (items) => {
                 activeStyles.recent_posts = !!items.rex_hide_recent_posts;
                 activeStyles.reddit_footer = !!items.rex_hide_reddit_footer;
+                activeStyles.trending = !!items.rex_hide_trending;
                 updateAllRoots();
             });
 
@@ -84,6 +122,10 @@ window.REX_FEED = (function () {
                     }
                     if (changes.rex_hide_reddit_footer) {
                         activeStyles.reddit_footer = changes.rex_hide_reddit_footer.newValue;
+                        needsUpdate = true;
+                    }
+                    if (changes.rex_hide_trending) {
+                        activeStyles.trending = changes.rex_hide_trending.newValue;
                         needsUpdate = true;
                     }
                     if (needsUpdate) {

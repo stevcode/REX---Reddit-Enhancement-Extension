@@ -23,7 +23,8 @@ window.REX_SETTINGS = (function () {
         rex_hide_start_community: false,
         rex_hide_news: false,
         rex_hide_recent_posts: false,
-        rex_hide_reddit_footer: false
+        rex_hide_reddit_footer: false,
+        rex_hide_trending: false
     };
 
     /**
@@ -156,6 +157,7 @@ window.REX_SETTINGS = (function () {
                 <!-- REDDIT FEED Section -->
                 <div class="mb-lg">
                     <h2 class="${SECTION_HEADER_CLASS}">Reddit Feed</h2>
+                    ${createToggleRow("Remove 'Trending'", "Hides the Trending carousel at the top of /r/popular", "rex-toggle-trending", "rex_hide_trending")}
                     ${createToggleRow("Hide 'RECENT POSTS'", "Hides the Recent Posts section from the right sidebar on feed pages", "rex-toggle-recent-posts", "rex_hide_recent_posts")}
                     ${createToggleRow("Hide Reddit Footer", "Hides the Legal/Policy links (e.g. Privacy Policy, User Agreement) from the right sidebar", "rex-toggle-reddit-footer", "rex_hide_reddit_footer")}
                 </div>
