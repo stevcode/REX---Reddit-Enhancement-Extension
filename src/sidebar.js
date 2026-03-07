@@ -83,6 +83,27 @@ window.REX_SIDEBAR = (function () {
             return;
         }
 
+        // Ensure the active styling override is present in this root
+        const activeStyleId = 'rex-all-active-style';
+        if (!(root.getElementById ? root.getElementById(activeStyleId) : root.querySelector(`#${activeStyleId}`))) {
+            const activeStyle = document.createElement('style');
+            activeStyle.id = activeStyleId;
+            // Native Reddit theme variables
+            activeStyle.textContent = `
+                #rex-all-posts a[aria-current="page"] {
+                    background-color: var(--color-neutral-background-selected) !important;
+                }
+                #rex-all-posts a[aria-current="page"] * {
+                    color: var(--color-neutral-content-strong) !important;
+                }
+            `;
+            if (root.head) {
+                root.head.appendChild(activeStyle);
+            } else {
+                root.appendChild(activeStyle);
+            }
+        }
+
         const isAllActive = window.location.pathname.startsWith('/r/all');
 
         if (existing) {
