@@ -199,7 +199,7 @@ window.REX_SETTINGS = (function () {
             const allLinks = Array.from(document.querySelectorAll('a'));
             emailTab = allLinks.find(a => a.textContent.trim() === 'Email');
             if (emailTab) targetContainer = emailTab.parentElement;
-            else return false;
+            else return false; // Container not found yet
         } else {
             const allLinks = Array.from(targetContainer.querySelectorAll('a'));
             emailTab = allLinks.find(a => a.textContent.trim() === 'Email');
@@ -349,12 +349,22 @@ window.REX_SETTINGS = (function () {
             console.log('[REX] Initializing Settings Injector');
             // Load settings immediately on init
             loadSettings().then(() => {
-                injectTab();
+                // Initial check in case we load directly into settings
+                if (window.location.pathname.startsWith('/setting')) {
+                    injectTab();
+                }
 
                 const observer = new MutationObserver(() => {
-                    // If tab is gone (navigation/render), put it back
-                    if (!document.getElementById(REX_TAB_ID)) {
-                        injectTab();
+                    // Only try to inject if we are actually on a settings page
+                    if (window.location.pathname.startsWith('/setting')) {
+                        // If tab is gone (navigation/render), put it back
+                        if (!document.getElementById(REX_TAB_ID)) {
+                            injectTab();
+                        }
+                    } else {
+                        // If we navigated AWAY from settings, clean up our panel if it exists
+                        const panel = document.getElementById(REX_PANEL_ID);
+                        if (panel) panel.remove();
                     }
                 });
 

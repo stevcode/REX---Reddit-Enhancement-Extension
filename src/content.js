@@ -21,19 +21,9 @@
         window.REX_FEED.init();
     }
 
-    // Initialize REX Settings if we are on the settings page
-    function initSettings() {
-        if (window.location.href.includes('/settings') && window.REX_SETTINGS) {
-            window.REX_SETTINGS.init();
-        }
-    }
-
-    if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', () => {
-            initSettings();
-        });
-    } else {
-        initSettings();
+    // Initialize REX Settings globally to allow its SPA router to inject tabs on navigation
+    if (window.REX_SETTINGS) {
+        window.REX_SETTINGS.init();
     }
 
 })();
