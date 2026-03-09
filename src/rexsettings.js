@@ -368,7 +368,8 @@ window.REX_SETTINGS = (function () {
                     }
                 });
 
-                observer.observe(document.body, { childList: true, subtree: true });
+                const targetNode = document.documentElement || document.body;
+                observer.observe(targetNode, { childList: true, subtree: true });
             });
         },
         save: saveSetting, // Expose save for inline handlers
